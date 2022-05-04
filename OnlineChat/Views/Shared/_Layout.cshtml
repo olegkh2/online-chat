@@ -1,0 +1,33 @@
+﻿<!DOCTYPE html>
+
+<html>
+<head>
+    <meta name="viewport" content="width=device-width" />
+    <title>Online Chat</title>
+
+    <link rel="stylesheet" href="~/css/style.css"/>
+</head>
+<body>
+
+    <header class="page-header">
+        <p>
+            Online Chat
+        </p>
+    </header>
+
+    <main class="main">
+        <nav class="navbar">
+            <ul class="navbar__list">
+
+            </ul>
+        </nav>
+
+        @RenderBody()
+
+    </main>
+
+    <script src="~/js/script.js"></script>
+    @RenderSection("Scripts", false)
+
+</body>
+</html>

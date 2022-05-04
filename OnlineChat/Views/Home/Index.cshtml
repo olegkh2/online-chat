@@ -1,0 +1,32 @@
+﻿<div class="main-message">
+    Please, select a dialog...
+</div>
+
+@section scripts{
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded',  function() {
+            window.localStorage.setItem('token', '@ViewBag.Token');
+            axios.get('https://localhost:44331/api/Chat',{
+                headers:{
+                    'Authorization': 'Bearer @ViewBag.Token'
+                }
+                })
+            .then(function (response) {
+                response.data.forEach(element => {
+                    var li = document.createElement("li")
+                    li.classList.add('navbar__list-item')
+
+                    var a = document.createElement("a")
+                    a.classList.add('room-button')
+                    a.appendChild(document.createTextNode(element.name))
+                    a.setAttribute('href', 'Chat/' + element.id)
+                    li.appendChild(a)
+
+                    document.querySelector('.navbar__list').append(li)
+                })
+            })
+        })
+    </script>
+
+}

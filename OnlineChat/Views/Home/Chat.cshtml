@@ -1,0 +1,160 @@
+﻿@model int
+
+<div class="chat-body">
+    <ul class="chat-body-list">
+        
+    </ul>
+
+    <form class="chat-input" onsubmit="sendMessage(event)" asp-controller="Hub" asp-action="SendMessage">
+        <input type="hidden" name="roomId" value="@Model"/>
+        <input type="text" name="message" id="message-input"/>
+        <button type="submit">Send</button>
+    </form>
+</div>
+
+@section scripts{
+    
+    <script src="~/js/signalR.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+    <script>
+        var token = window.localStorage.getItem('token')
+
+        axios.defaults.headers.common['Authorization'] = 'Bearer ' + token
+
+        var userId
+
+        document.addEventListener('DOMContentLoaded',  function() {
+            
+            //get navbar
+            axios.get('https://localhost:44331/api/Chat')
+                .then(function (response) {
+                    response.data.forEach(element => {
+
+                        var li = document.createElement("li")
+                        li.classList.add('navbar__list-item')
+
+                        var a = document.createElement("a")
+                        a.classList.add('room-button')
+                        a.appendChild(document.createTextNode(element.name))
+                        a.setAttribute('href', element.id)
+                        li.appendChild(a)
+
+                        document.querySelector('.navbar__list').append(li)
+                    })
+                })
+            
+            //get userId
+            axios.get('https://localhost:44331/api/login/getUserId')
+            .then(function (response) {
+                userId = response.data
+            })
+
+            //get messages
+            axios.get('https://localhost:44331/api/Message/@Model')
+            .then(function (response) {
+                response.data.forEach(function(element){
+                    var message = createMessages(element)
+                    document.querySelector('.chat-body-list').prepend(message)
+                })
+                window.scroll({
+                  top: 1000,
+                  left: 0,
+                });
+            })
+        })
+
+        //get more messages
+        var page = 1
+
+        document.addEventListener('scroll', function(e) {
+            if(window.scrollY == 0){
+                axios.get('https://localhost:44331/api/Message/@Model/' + page)
+                    .then(function (response) {
+                        response.data.forEach(function(element){
+                            var message = createMessages(element)
+                            document.querySelector('.chat-body-list').prepend(message)
+                            window.scroll({ top: window.scrollY + 1, left: 0, })
+                        })
+                        page++
+                    })
+            }
+        })
+
+        //set connection to hub
+        var connection = new signalR.HubConnectionBuilder()
+            .withUrl("https://localhost:44331/chatHub", {
+                skipNegotiation: true,
+                transport: signalR.HttpTransportType.WebSockets
+            })
+            .withAutomaticReconnect()
+            .build()
+
+            //EDIT THIS
+        
+        //set recieve messages
+        connection.on("recieveMessage", function(element){
+            var message = createMessages(element)
+
+            document.querySelector('.chat-body-list').append(message)
+
+            window.scroll({ top: window.scrollY + 62, left: 0, })
+        })
+
+        connection.start({ })
+            .then(function(){
+                connection.invoke('joinRoom', '@Model')
+                console.log("joined to " + @Model)
+            })
+            .catch(function(err){
+                console.log(err)
+            })
+
+            window.addEventListener('onunload', function(){
+                connection.invoke('leaveRoom', '@Model')
+            })
+        
+        var sendMessage = function(event){
+            event.preventDefault()
+            
+            var data = new FormData(event.target)
+            var roomId = data.get('roomId')
+            var message = data.get('message')
+
+            document.getElementById('message-input').value=''
+
+            axios.post('https://localhost:44331/api/Message/' + roomId + '/' + message)
+                .then(res => {
+                    console.log("Message Sent")
+                })
+                .catch(err => {
+                    console.log("Failed to send message")
+                })
+        }
+
+
+        var createMessages = function (element) {
+             var li = document.createElement("li")
+             li.classList.add('chat-message')
+             if(userId == element.userId){
+                 li.classList.add('user-message')
+             }
+
+             var h5 = document.createElement("h5")
+             h5.appendChild(document.createTextNode(element.userName + ': '))
+
+             var p = document.createElement("p")
+             p.appendChild(document.createTextNode(element.text))
+
+             var span = document.createElement("span")
+             span.appendChild(document.createTextNode(element.time))
+
+             li.appendChild(h5)
+             li.appendChild(p)
+             li.appendChild(span)
+
+             return li
+        }
+
+    </script>
+}
